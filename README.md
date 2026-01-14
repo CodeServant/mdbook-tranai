@@ -9,6 +9,9 @@ Install this extension with `cargo install --path .`. And then install it  withi
 # there is a need to configure GEMINI_API_KEY env variable
 [preprocessor.tranai]
 images = ["some.txt"] # not implemented  # list of images that should be translated, relative to this file
-custom_prompt = "file://absolute/path/hello.txt" # it must be absolute path can be https
+custom_prompt = "file://absolute/path/hello.txt" # it must be absolute path can be https (md, txt)
 ```
-So far there are files that appear when i want to read a message.
+
+## Caveats
+- Note that gemini can sometimes produce results that are not respected by this program (then you have to retry).
+- Don't use mdBook watch (every refresh will eat you tokens)
