@@ -14,4 +14,4 @@ custom_prompt = "file://absolute/path/hello.txt" # it must be absolute path can 
 
 ## Caveats
 - Note that gemini can sometimes produce results that are not respected by this program (then you have to retry).
-- Don't use mdBook watch (every refresh will eat you tokens)
+- Don't use mdBook watch (every refresh will eat your tokens)
