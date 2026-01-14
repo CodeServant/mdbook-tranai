@@ -1,0 +1,1 @@
+Zamień ten text na język polski. Postaraj się pisać po polsku.

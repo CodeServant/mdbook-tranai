@@ -74,7 +74,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 #[allow(unreachable_pub, reason = "wouldn't be a problem in a proper lib.rs")]
 mod nop_lib {
     use core::fmt;
-    use std::{env, path::PathBuf, vec};
+    use std::{env, fs::File, io::Read, path::PathBuf, vec};
 
     use gemini_rust::Part;
     use mdbook_preprocessor::book::BookItem;
@@ -92,12 +92,26 @@ mod nop_lib {
         url: Option<Url>,
     }
 
-    /// This will be used to fetching all sorts of data like ftp and http from requests.
+    /// This will be used to fetching all sorts of data like file and http from requests.
     fn fetch_url(url: Url) -> String {
-        return reqwest::blocking::get(url.as_str())
-            .expect("cannot download custom prompt")
-            .text()
-            .expect("response from custom prompt invalid");
+        match url.scheme() {
+            "file" => {
+                let mut opened =
+                    File::open(url.path()).unwrap_or_else(|e| panic!("Could not open a file: {e}"));
+                let mut buf = String::new();
+                opened.read_to_string(&mut buf);
+                return buf;
+            }
+            "https" => {
+                let res = reqwest::blocking::get(url);
+                res.unwrap_or_else(|e| panic!("Could not download text: {e}"))
+                    .text()
+                    .unwrap_or_else(|e| panic!("Could not decode text after download: {e}"))
+            }
+            other => {
+                panic!("Can't parse this type of url: {}", other);
+            }
+        }
     }
 
     #[derive(Debug, Deserialize, Serialize)]
@@ -127,7 +141,7 @@ mod nop_lib {
             mut url: Url,
             mut images: Vec<PathBuf>,
         ) -> anyhow::Result<()> {
-            let sys_prompt = "Zamień ten text na język polski. Postaraj się pisać po polsku."; //fetch_url(url);
+            let sys_prompt = fetch_url(url);
             let mut wynik: Vec<ToTranslate> = vec![];
             for item in book.iter() {
                 if let BookItem::Chapter(ref ch) = *item {
