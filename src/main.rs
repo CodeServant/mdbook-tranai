@@ -73,8 +73,14 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 /// in your main `lib.rs` file.
 #[allow(unreachable_pub, reason = "wouldn't be a problem in a proper lib.rs")]
 mod nop_lib {
-    use core::fmt;
-    use std::{env, fs::File, io::Read, path::PathBuf, vec};
+    use core::{fmt, panic};
+    use std::{
+        env::{self, current_dir},
+        fs::File,
+        io::Read,
+        path::{Path, PathBuf},
+        vec,
+    };
 
     use gemini_rust::Part;
     use mdbook_preprocessor::book::BookItem;
@@ -96,10 +102,13 @@ mod nop_lib {
     fn fetch_url(url: Url) -> String {
         match url.scheme() {
             "file" => {
+                let mut dest = url.path();
                 let mut opened =
-                    File::open(url.path()).unwrap_or_else(|e| panic!("Could not open a file: {e}"));
+                    File::open(dest).unwrap_or_else(|e| panic!("Could not open a file: {e}"));
                 let mut buf = String::new();
-                opened.read_to_string(&mut buf);
+                opened
+                    .read_to_string(&mut buf)
+                    .expect("couldn't read a file to the buffer");
                 return buf;
             }
             "https" => {
