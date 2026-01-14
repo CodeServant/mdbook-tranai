@@ -237,7 +237,7 @@ mod nop_lib {
                         .map_err(|e| mdbook_preprocessor::errors::Error::from(e));
                 }
                 _ => anyhow::bail!(
-                    "Not all properties in config were specified, check example toml file."
+                    "Not all properties were specified in config, check example toml file."
                 ),
             }
 
