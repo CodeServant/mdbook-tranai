@@ -1,1 +1,1 @@
-Zamień ten text na język polski. Postaraj się pisać po polsku.
+Przełóż ten tekst na język polski. Postaraj się pisać po polsku. Na wyjściu trzymaj się struktury JSON.
