@@ -149,6 +149,7 @@ mod nop_lib {
             book: &mut Book,
             mut url: Url,
             mut images: Vec<PathBuf>,
+            pro: &bool,
         ) -> anyhow::Result<()> {
             let sys_prompt = fetch_url(url);
             let mut wynik: Vec<ToTranslate> = vec![];
@@ -169,32 +170,36 @@ mod nop_lib {
             };
             use gemini_rust::prelude::*;
 
-            let mut gemini_response = Gemini::new(gemini.api_key)
-                .expect("no connection to gemini")
-                .generate_content()
-                .with_system_prompt(sys_prompt)
-                .with_response_mime_type("application/json")
-                .with_response_schema(json!(
-                {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "file_path": {
-                                "type": "string",
-                                "description": "Path to the translated chapter."
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "Content of the translated chapter."
-                            },
-                            "chapter_title": {
-                                "type": "string",
-                                "description": "Newly translated chapter."
-                            }
+            let mut gemini_response = if *pro {
+                Gemini::pro(gemini.api_key)
+            } else {
+                Gemini::new(gemini.api_key)
+            }
+            .expect("no connection to gemini")
+            .generate_content()
+            .with_system_prompt(sys_prompt)
+            .with_response_mime_type("application/json")
+            .with_response_schema(json!(
+            {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "file_path": {
+                            "type": "string",
+                            "description": "Path to the translated chapter."
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "Content of the translated chapter."
+                        },
+                        "chapter_title": {
+                            "type": "string",
+                            "description": "Newly translated chapter."
                         }
                     }
-                }));
+                }
+            }));
 
             gemini_response.contents = Vec::new();
             let mut parts: Vec<Part> = vec![];
@@ -252,12 +257,19 @@ mod nop_lib {
                     .get::<Url>(&format!("preprocessor.{TRAN_NAME}.custom_prompt")),
                 ctx.config
                     .get::<Vec<PathBuf>>(&format!("preprocessor.{TRAN_NAME}.images")),
+                ctx.config
+                    .get::<Option<bool>>(&format!("preprocessor.{TRAN_NAME}.use_pro")),
             ) {
-                (Ok(Some(url)), Ok(Some(mut images))) => {
+                (Ok(Some(url)), Ok(Some(mut images)), Ok(Some(mut pro))) => {
                     make_absolute(&mut images, &ctx.root);
                     let rt = Runtime::new().expect("Failed to crate tokio runtime");
-                    rt.block_on(TranAI::translate_book(&mut book, url, images))
-                        .map_err(|e| mdbook_preprocessor::errors::Error::from(e));
+                    rt.block_on(TranAI::translate_book(
+                        &mut book,
+                        url,
+                        images,
+                        pro.get_or_insert(false),
+                    ))
+                    .map_err(|e| mdbook_preprocessor::errors::Error::from(e));
                 }
                 _ => anyhow::bail!(
                     "Not all properties were specified in config, check example toml file."
