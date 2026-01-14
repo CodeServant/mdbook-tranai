@@ -13,4 +13,4 @@ anyhow = "1.0.100"
 url = { version = "2.5.8", features = ["serde"] }
 gemini-rust = "1.6.1"
 reqwest = { version = "0.13.1", features = ["blocking"] }
-tokio = {version = "1.49.0", features = ["full"]}
+tokio = { version = "1.49.0", features = ["full"] }

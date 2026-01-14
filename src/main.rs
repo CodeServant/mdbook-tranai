@@ -1,7 +1,6 @@
 //! A basic example of a preprocessor that does nothing.
 
 use crate::nop_lib::TranAI;
-use anyhow::anyhow;
 use clap::{Arg, ArgMatches, Command};
 use mdbook_preprocessor::book::Book;
 use mdbook_preprocessor::errors::Result;
@@ -75,20 +74,12 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 #[allow(unreachable_pub, reason = "wouldn't be a problem in a proper lib.rs")]
 mod nop_lib {
     use core::fmt;
-    use std::{
-        char::ToUppercase,
-        env::{self, consts},
-        fs::File,
-        io::Write,
-        path::{Path, PathBuf},
-        vec,
-    };
+    use std::{env, path::PathBuf, vec};
 
-    use clap::builder::UnknownArgumentValueParser;
-    use gemini_rust::{Part, client::GeminiClient};
+    use gemini_rust::Part;
     use mdbook_preprocessor::book::BookItem;
     use serde::{Deserialize, Serialize};
-    use serde_json::{json, to_string_pretty};
+    use serde_json::json;
     use tokio::runtime::Runtime;
     use url::Url;
 
@@ -100,6 +91,8 @@ mod nop_lib {
         api_key: String,
         url: Option<Url>,
     }
+
+    /// This will be used to fetching all sorts of data like ftp and http from requests.
     fn fetch_url(url: Url) -> String {
         return reqwest::blocking::get(url.as_str())
             .expect("cannot download custom prompt")
@@ -108,12 +101,13 @@ mod nop_lib {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    struct ToTranslate<'a> {
-        file_path: &'a Path,
-        content: &'a str,
+    struct ToTranslate {
+        file_path: PathBuf,
+        content: String,
+        chapter_title: String,
     }
 
-    impl <'a>fmt::Display for ToTranslate<'a> {
+    impl<'a> fmt::Display for ToTranslate {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(
                 f,
@@ -129,24 +123,22 @@ mod nop_lib {
         }
 
         async fn translate_book(
-            mut book: &Book,
+            book: &mut Book,
             mut url: Url,
             mut images: Vec<PathBuf>,
         ) -> anyhow::Result<()> {
-            let sys_prompt = "Zamień ten text na język polski. Zwróć podobny JSON jak ten wejściowy. Całego jsona w jednej linijce."; //fetch_url(url);
+            let sys_prompt = "Zamień ten text na język polski. Postaraj się pisać po polsku."; //fetch_url(url);
             let mut wynik: Vec<ToTranslate> = vec![];
             for item in book.iter() {
                 if let BookItem::Chapter(ref ch) = *item {
                     let newtt = ToTranslate {
-                        file_path: ch.path.as_ref().unwrap(),
-                        content: &ch.content,
+                        file_path: ch.clone().path.unwrap(),
+                        content: ch.clone().content,
+                        chapter_title: ch.clone().name,
                     };
                     wynik.push(newtt);
                 }
             }
-
-            let mut file = File::create("wynik.txt")?;
-            file.write_all(to_string_pretty(&sys_prompt).unwrap().as_bytes())?;
 
             let gemini: GeminiConf = GeminiConf {
                 api_key: env::var("GEMINI_API_KEY")?,
@@ -158,8 +150,28 @@ mod nop_lib {
                 .expect("no connection to gemini")
                 .generate_content()
                 .with_system_prompt(sys_prompt)
-                .with_response_mime_type("application/json");
-                //.with_response_schema(json!([{"file_path": "{file_path}","content": "{content}"}]));
+                .with_response_mime_type("application/json")
+                .with_response_schema(json!(
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Path to the translated chapter."
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "Content of the translated chapter."
+                            },
+                            "chapter_title": {
+                                "type": "string",
+                                "description": "Newly translated chapter."
+                            }
+                        }
+                    }
+                }));
 
             gemini_response.contents = Vec::new();
             let mut parts: Vec<Part> = vec![];
@@ -168,27 +180,28 @@ mod nop_lib {
                 thought: None,
                 thought_signature: None,
             });
-            let mut file = File::create("parsed_json_req.txt")?;
-            file.write_all(serde_json::to_string(&parts)?.as_bytes())?;
-
             gemini_response.contents.push(Content {
                 parts: Some(parts),
                 role: Some(Role::User),
             });
-            
-            let mut file = File::create("gemini_req.txt")?;
-            
-            //file.write_all(serde_json::to_string(&gemini_response.build())?.as_bytes())?;
 
-            //let gemini_response = gemini_response.execute().await;
+            let gemini_response = gemini_response.execute().await;
+            let res_to_str = gemini_response.unwrap().text();
 
-            let mut file = File::create("gemini_resp.txt")?;
-            //let res_to_str = gemini_response.unwrap().text();
-            //let translated = serde_json::from_str::<Vec<ToTranslate>>(&res_to_str).expect("couldn't translate response from gemini to internal type");
+            let mut translated_response = serde_json::from_str::<Vec<ToTranslate>>(&res_to_str)
+                .expect("cannot parse response translation from gemini to internal data type");
 
-            //file.write_all(serde_json::to_string(&res_to_str)?.as_bytes())?;
+            // Yes I know it's not optimal :)
+            for each in translated_response.iter_mut() {
+                book.for_each_chapter_mut(|chapter| {
+                    if chapter.path.clone().unwrap() == each.file_path {
+                        chapter.name = each.chapter_title.clone();
+                        chapter.content = each.content.clone();
+                    }
+                });
+            }
 
-            todo!("Gemini translation for the whole book");
+            Ok(())
         }
     }
 
@@ -222,8 +235,6 @@ mod nop_lib {
                     let rt = Runtime::new().expect("Failed to crate tokio runtime");
                     rt.block_on(TranAI::translate_book(&mut book, url, images))
                         .map_err(|e| mdbook_preprocessor::errors::Error::from(e));
-                    let mut file = File::create("flag.txt")?;
-                    file.write_all("after translation it passes".as_bytes())?;
                 }
                 _ => anyhow::bail!(
                     "Not all properties in config were specified, check example toml file."
