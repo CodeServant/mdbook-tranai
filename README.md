@@ -33,3 +33,4 @@ Now when you run `mdbook build --open` your book will open (after a while) in yo
 
 ## Ideas for features
 - Translating images with [*Nano Banana*](https://gemini.google/pl/overview/image-generation) model.
+- Create central prompts directory or maybe compile to source code.
