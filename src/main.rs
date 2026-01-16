@@ -9,7 +9,7 @@ use semver::{Version, VersionReq};
 use std::io;
 use std::process;
 
-const TRAN_NAME: &str = "zzztranai";
+const TRAN_NAME: &str = "tranai";
 
 fn make_app() -> Command {
     Command::new(TRAN_NAME)
