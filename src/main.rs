@@ -201,8 +201,9 @@ mod nop_lib {
                         "chapter_title": {
                             "type": "string",
                             "description": "Newly translated chapter."
-                        }
-                    }
+                        },
+                    },
+                    "required": ["file_path", "content", "chapter_title"],
                 }
             }));
 
