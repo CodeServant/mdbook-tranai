@@ -77,10 +77,11 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 mod nop_lib {
     use core::{fmt, panic};
     use std::{
+        collections::HashSet,
         env::{self, current_dir},
         fs::File,
-        io::Read,
-        path::{Path, PathBuf},
+        io::{Read, Write},
+        path::PathBuf,
         vec,
     };
 
@@ -88,7 +89,7 @@ mod nop_lib {
     use mdbook_preprocessor::book::BookItem;
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
-    use serde_json::json;
+    use serde_json::{self, json};
     use tokio::runtime::Runtime;
     use url::Url;
 
@@ -147,6 +148,13 @@ mod nop_lib {
         }
     }
 
+    fn get_cached_translations(opened_file: File) -> Vec<ToTranslate> {
+        serde_json::from_reader(opened_file).expect("cached file couldn't be deserialize")
+    }
+
+    const GEMINI_RAW_RESPONSE_FILE_NAME: &str = "gemini_raw_response.txt";
+    const RES_CACHE_FILE_NAME: &str = "tranai_cache.json";
+
     impl TranAI {
         pub fn new() -> TranAI {
             TranAI
@@ -159,7 +167,7 @@ mod nop_lib {
             pro: &bool,
         ) -> anyhow::Result<()> {
             let sys_prompt = fetch_url(url);
-            let mut wynik: Vec<ToTranslate> = vec![];
+            let mut for_translation: Vec<ToTranslate> = vec![];
             for item in book.iter() {
                 if let BookItem::Chapter(ref ch) = *item {
                     let newtt = ToTranslate {
@@ -167,9 +175,30 @@ mod nop_lib {
                         content: ch.clone().content,
                         chapter_title: ch.clone().name,
                     };
-                    wynik.push(newtt);
+                    for_translation.push(newtt);
                 }
             }
+
+            // edited
+            let file = File::open(RES_CACHE_FILE_NAME);
+            let mut cached_translations = if let Ok(opened_file) = file {
+                let cached_translations: Vec<ToTranslate> = get_cached_translations(opened_file);
+                let cached_paths: HashSet<PathBuf> = HashSet::from_iter(
+                    cached_translations
+                        .iter()
+                        .clone()
+                        .map(|el| el.file_path.clone()),
+                );
+                for_translation = for_translation
+                    .into_iter()
+                    .filter(|el| !cached_paths.contains(&el.file_path))
+                    .collect();
+                cached_translations
+            } else {
+                vec![]
+            };
+
+            // edited end
 
             let gemini: GeminiConf = GeminiConf {
                 api_key: env::var("GEMINI_API_KEY")?,
@@ -212,7 +241,7 @@ mod nop_lib {
             gemini_response.contents = Vec::new();
             let mut parts: Vec<Part> = vec![];
             parts.push(Part::Text {
-                text: serde_json::to_string(&wynik)?,
+                text: serde_json::to_string(&for_translation)?,
                 thought: None,
                 thought_signature: None,
             });
@@ -221,12 +250,21 @@ mod nop_lib {
                 role: Some(Role::User),
             });
 
-            let gemini_response = gemini_response.execute().await;
-            let res_to_str = gemini_response.unwrap().text();
+            let mut translated_response = {
+                let gemini_response = gemini_response.execute().await;
+                let res_to_str = gemini_response.unwrap().text();
 
-            let mut translated_response = serde_json::from_str::<Vec<ToTranslate>>(&res_to_str)
-                .expect("cannot parse response translation from gemini to internal data type");
+                let mut file = File::create(GEMINI_RAW_RESPONSE_FILE_NAME)?;
+                file.write_all(res_to_str.as_bytes())?;
 
+                serde_json::from_str::<Vec<ToTranslate>>(&res_to_str)
+                .unwrap_or_else(|er|{
+                    eprintln!("Cannot parse response translation from gemini to internal data type. {er} Check {GEMINI_RAW_RESPONSE_FILE_NAME} for how the prompt looks and add it to the {RES_CACHE_FILE_NAME}. Make it correct json array.");
+                    vec![]
+                })
+            };
+
+            translated_response.append(&mut cached_translations);
             // Yes I know it's not optimal :)
             for each in translated_response.iter_mut() {
                 book.for_each_chapter_mut(|chapter| {
