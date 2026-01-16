@@ -22,10 +22,11 @@ use_pro = false # turn on the Gemini Pro for better results (Flash when false)
 Now when you run `mdbook build --open` your book will open (after a while) in your preferred language.
 
 ## Caveats
-- Note that gemini can sometimes **produce results** that are **not respected** by this program (then you have to retry). Hope that *Gemini Pro* do better.
-- **Don't** use `mdBook watch/serve` (every refresh will eat your tokens)
+- Sometimes Gemini end the response suddenly. When that happens this preprocessor saves fetched response to a file (you will be prompted about it in the error message). Then paste this response array without broken element to the cache json file (name in err msg) in the main dir. This cache is then used to filter out messages that were translated. If cache consists all messages, then there is no connection to Gemini. **Check the last message output**. Sometimes *Gemini* can change the last message even when it correctly create JSON.
+- **Don't** use `mdBook watch/serve` (every refresh will eat your tokens). And when there is cached json using this features makes no sense, because on the output you will have only translated document from cache (cache is applied by file names for chapters).
 
 ## Keep in mind
+- This preprocessor must be executed last (order is alphabetical)
 - It's ***Google Gemini*** (payed, external service). Every compile sends data to them and **eat your tokens**.
 - You can have link to **external source** of custom prompt (so check if you **trust the prompting person**).
 - This program won't be very generous with messages when error occurs.
