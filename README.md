@@ -15,8 +15,8 @@ When you want to translate complete mdBook, **add** this **snippet** to **the bo
 # configure GEMINI_API_KEY env variable
 [preprocessor.tranai]
 images = ["some.txt"] # not implemented  # list of images that should be translated, relative to this file
-custom_prompt = "https://raw.githubusercontent.com/CodeServant/mdbook-tranai/refs/heads/experimental/langs/pl.md" # txt file with prompt to gemini, it must be absolute path can be https, file (md, txt), this is the file which determine the out language (best to write in your destination language)
-# use_pro = true # optionally turn on the Gemini Pro for better results (Flash is default)
+custom_prompt = "https://raw.githubusercontent.com/CodeServant/mdbook-tranai/refs/heads/experimental/langs/pl.md" # file with prompt to gemini, it must be absolute path can be https, file (md, txt), this is the file which determine the out language (best to write in your destination language)
+use_pro = false # turn on the Gemini Pro for better results (Flash when false)
 ```
 
 Now when you run `mdbook build --open` your book will open (after a while) in your preferred language.
