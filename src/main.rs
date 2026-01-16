@@ -84,6 +84,7 @@ mod nop_lib {
 
     use gemini_rust::Part;
     use mdbook_preprocessor::book::BookItem;
+    use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
     use tokio::runtime::Runtime;
@@ -113,9 +114,13 @@ mod nop_lib {
             }
             "https" => {
                 let res = reqwest::blocking::get(url);
-                res.unwrap_or_else(|e| panic!("Could not download text: {e}"))
-                    .text()
-                    .unwrap_or_else(|e| panic!("Could not decode text after download: {e}"))
+                let res = res.unwrap_or_else(|e| panic!("Could not download text: {e}"));
+                match res.status() {
+                    StatusCode::OK => res
+                        .text()
+                        .unwrap_or_else(|e| panic!("Could not decode text after download: {e}")),
+                    s => panic!("cannot download file from the internet: {s}"),
+                }
             }
             other => {
                 panic!("Can't parse this type of url: {}", other);
