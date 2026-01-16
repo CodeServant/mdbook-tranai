@@ -9,8 +9,10 @@ use semver::{Version, VersionReq};
 use std::io;
 use std::process;
 
+const TRAN_NAME: &str = "zzztranai";
+
 fn make_app() -> Command {
-    Command::new("tranai")
+    Command::new(TRAN_NAME)
         .about("Translation preprocessor using AI interfaces")
         .subcommand(
             Command::new("supports")
@@ -249,7 +251,6 @@ mod nop_lib {
         }
     }
 
-    const TRAN_NAME: &str = "tranai";
     impl Preprocessor for TranAI {
         fn name(&self) -> &str {
             TRAN_NAME

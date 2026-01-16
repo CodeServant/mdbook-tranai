@@ -13,7 +13,7 @@ This is prof of concept (the code needs thorough quality checks and testing), bu
 When you want to translate complete mdBook, **add** this **snippet** to **the bottom** of `book.toml` file. Tweak it a bit.
 ```toml
 # configure GEMINI_API_KEY env variable
-[preprocessor.tranai]
+[preprocessor.zzztranai]
 images = ["some.txt"] # not implemented  # list of images that should be translated, relative to this file
 custom_prompt = "https://raw.githubusercontent.com/CodeServant/mdbook-tranai/refs/heads/experimental/langs/pl.md" # file with prompt to gemini, it must be absolute path can be https, file (md, txt), this is the file which determine the out language (best to write in your destination language)
 use_pro = false # turn on the Gemini Pro for better results (Flash when false)

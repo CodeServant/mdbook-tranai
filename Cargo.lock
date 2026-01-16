@@ -912,7 +912,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mdbook-tranai"
+name = "mdbook-zzztranai"
 version = "0.1.0"
 dependencies = [
  "anyhow",
