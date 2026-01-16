@@ -1,7 +1,7 @@
 A [preprocessor](https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html) for [*mdBook*](https://rust-lang.github.io/mdBook/) for automatic translations using AI (currently [*Gemini*](https://gemini.google.com)).
 
 
-This is prof of concept (the code needs thorough quality checks and testing), but you can use it, it works (if *Gemini* doesn't ditch you).
+This is prof of concept (the code needs thorough quality checks and testing), but you can use it, it works (if *Gemini* doesn't ditch you). It was used to translate rust book into [polish](http://www.macia.pl/docs/rust-book) language.
 
 ## How to use
 
