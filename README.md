@@ -26,7 +26,7 @@ Now when you run `mdbook build --open` your book will open (after a while) in yo
 - **Don't** use `mdBook watch/serve` (every refresh will eat your tokens). And when there is cached json using this features makes no sense, because on the output you will have only translated document from cache (cache is applied by file names for chapters).
 
 ## Keep in mind
-- This preprocessor must be executed last (order is alphabetical)
+- This preprocessor must be executed last (order is alphabetical). Use [mdBook ordering](https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html?highlight=order#require-a-certain-order).
 - It's ***Google Gemini*** (payed, external service). Every compile sends data to them and **eat your tokens**.
 - You can have link to **external source** of custom prompt (so check if you **trust the prompting person**).
 - This program won't be very generous with messages when error occurs.
