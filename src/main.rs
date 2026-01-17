@@ -138,16 +138,6 @@ mod nop_lib {
         chapter_title: String,
     }
 
-    impl<'a> fmt::Display for ToTranslate {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(
-                f,
-                "{{file_path: {:#?}, content: {:#?}}}",
-                self.file_path, self.content
-            )
-        }
-    }
-
     fn get_cached_translations(opened_file: File) -> Vec<ToTranslate> {
         serde_json::from_reader(opened_file).expect("cached file couldn't be deserialize")
     }
