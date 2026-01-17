@@ -169,7 +169,6 @@ mod nop_lib {
                 }
             }
 
-            // edited
             let file = File::open(RES_CACHE_FILE_NAME);
             let mut cached_translations = if let Ok(opened_file) = file {
                 let cached_translations: Vec<ToTranslate> = get_cached_translations(opened_file);
@@ -187,8 +186,6 @@ mod nop_lib {
             } else {
                 vec![]
             };
-
-            // edited end
 
             let gemini: GeminiConf = GeminiConf {
                 api_key: env::var("GEMINI_API_KEY")?,
